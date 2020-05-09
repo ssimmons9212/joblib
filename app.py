@@ -7,7 +7,7 @@ import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func, desc
-from flask import Flask, jsonify, render_template, redirect, url_for, request
+from flask import Flask, jsonify, render_template, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 
 # might be able to remove
@@ -23,11 +23,6 @@ from config import pw
 
 # gp config file
 from db_config import pwd
-# prediction apps
-from FirstPrediction import FirstPredict, recipe_info, FinalPredict
-from secondPredict import SecondPredict
-
-df = pd.read_csv('wine_pairings_v7.csv', index_col = 'wine')
 
 
 app = Flask(__name__, template_folder="templates")
@@ -50,13 +45,9 @@ def index():
     return result
 
 
-@app.route("/grape_guide", methods = ["GET","POST"])
+@app.route("/grape_guide")
 def wine():
-    wine_prediction = "blank"
-    if request.method == "POST":
-        wine_prediction = request.form["wine-selection"]
-    print(wine_prediction)
-    result = render_template("grape_guide.html", wine_selection = wine_prediction)
+    result = render_template("grape_guide.html")
     return result
 
 
@@ -135,34 +126,6 @@ def contact():
         result = render_template("contact_us.html")
         return result
 
-@app.route('/scrape', methods=['POST', 'GET'])
-def my_form_post():
-    r_url = request.form['var']
-    r_info = recipe_info(r_url)
-    # r_name = r_info['Recipe']
-    ingredientList = r_info['Ingredients']
-    # r_nutr = r_info['Nutrition']
 
-## running ingredients through model 1 
-    p1_dict = FirstPredict(ingredientList)
-    p1_wines = p1_dict['prediction1']
-    # if p1_wines == 'InvalidDish':
-    #     pFinal = 'No pairing found, maybe try some milk'
-    # else:
-    p1_styles = p1_dict['wineStyles']
-## taking output of first model and preparing it for model 2 
-    modelInput = r_info['nfactsList']
-    modelInput.insert(1, p1_dict['proToken'])
-    modelInput.append(float(modelInput[0]) * float(modelInput[1]))
-## running input through model 2 and getting final prediction 
-    p2 = SecondPredict(modelInput)
-    pFinal = FinalPredict(p1_styles, p2, p1_wines) 
-
-    print(pFinal)
-    print(p1_wines)
-    print(p2)
-
-    return render_template('predicted.html', prediction = pFinal, recipeIng = ingredientList, rName = r_info['Recipe'], rNutr = r_info['Nutrition'])
-    
 if __name__ == "__main__":
     app.run(debug=True)
